@@ -1,0 +1,1 @@
+{"name":"makefun-site-gen-speed","version":"1.0.0","private":true,"type":"module","license":"MIT","scripts":{"test":"node test.mjs","start":"node main.ts"}}
