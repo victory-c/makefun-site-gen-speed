@@ -2,12 +2,20 @@
 import { front } from './front.js';
 import { compile } from './template.js';
 import { markdown } from './markdown.js';
-import { slug, unique, compare, dateText } from './text.js';
+import { slug, unique, compare, dateText, escape } from './text.js';
 const directory = p => p.slice(0, Math.max(0, p.lastIndexOf('/')));
 export function run(input) {
   const base = input.site.base_url.replace(/\/+$/, ''), templates = new Map(), report = [], broken = new Set();
+  const escaped = new Map();
+  const escapeValue = text => {
+    const cached = escaped.get(text);
+    if (cached !== undefined) return cached;
+    const result = escape(text);
+    if (escaped.size < 8192 && text.length < 4096) escaped.set(text, result);
+    return result;
+  };
   for (const name of Object.keys(input.templates).sort()) {
-    try { templates.set(name, compile(name, input.templates[name])); }
+    try { templates.set(name, compile(name, input.templates[name], escapeValue)); }
     catch (e) { report.push(e.message); }
   }
   const sources = [], statics = [], bySource = new Map(), occupied = new Map();

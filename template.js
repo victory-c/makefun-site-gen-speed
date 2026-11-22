@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import { escape, stringify, truth } from './text.js';
 const pathPattern = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$/;
-export function compile(name, source) {
+export function compile(name, source, escapeValue = escape) {
   const fail = why => { throw new Error(`template "${name}": ${why}`); };
   const path = s => {
     if (!pathPattern.test(s)) fail(`${JSON.stringify(s)} is not a path`);
@@ -57,7 +57,7 @@ export function compile(name, source) {
     else fail(`{% ${v} %} is not a tag`);
   }
   if (stack.length) fail(`a ${stack.at(-1).type} is not closed`);
-  return generate(root);
+  return generate(root, escapeValue);
 }
 function lookup(scopes, keys) {
   let v;
@@ -70,7 +70,7 @@ function lookup(scopes, keys) {
   }
   return v;
 }
-function generate(nodes) {
+function generate(nodes, escapeValue) {
   let seq = 0;
   const paths = new Map();
   const access = keys => {
@@ -92,5 +92,5 @@ function generate(nodes) {
   // Only parser-validated instructions and JSON-quoted data reach generated code.
   const code = emit(nodes);
   const constants = [...paths].map(([json, name]) => `const ${name}=${json};`).join('');
-  return new Function('get', 'esc', 'str', 'yes', `${constants}return function(s,t,d=0){let o='';${code}return o;}`)(lookup, escape, stringify, truth);
+  return new Function('get', 'esc', 'str', 'yes', `${constants}return function(s,t,d=0){let o='';${code}return o;}`)(lookup, escapeValue, stringify, truth);
 }
