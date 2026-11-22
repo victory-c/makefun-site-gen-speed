@@ -72,8 +72,14 @@ function lookup(scopes, keys) {
 }
 function generate(nodes) {
   let seq = 0;
+  const paths = new Map();
+  const access = keys => {
+    const key = JSON.stringify(keys);
+    if (!paths.has(key)) paths.set(key, 'p' + paths.size);
+    return `get(s,${paths.get(key)})`;
+  };
   const emit = ns => ns.map(n => {
-    const q = JSON.stringify(n.v), get = `get(s,${q})`;
+    const q = JSON.stringify(n.v), get = (n.type === 'text' || n.type === 'include') ? '' : access(n.v);
     if (n.type === 'text') return `o+=${q};`;
     if (n.type === 'var') return `o+=esc(str(${get}));`;
     if (n.type === 'raw') return `o+=str(${get});`;
@@ -84,5 +90,7 @@ function generate(nodes) {
     return `{const a${k}=${get};if(Array.isArray(a${k})){for(let i${k}=0;i${k}<a${k}.length;i${k}++){s.push({[${JSON.stringify(n.binding)}]:a${k}[i${k}],loop:{index:i${k}+1,first:i${k}===0,last:i${k}===a${k}.length-1,length:a${k}.length}});${emit(n.body)}s.pop();}}}`;
   }).join('');
   // Only parser-validated instructions and JSON-quoted data reach generated code.
-  return new Function('get', 'esc', 'str', 'yes', `return function(s,t,d=0){let o='';${emit(nodes)}return o;}`)(lookup, escape, stringify, truth);
+  const code = emit(nodes);
+  const constants = [...paths].map(([json, name]) => `const ${name}=${json};`).join('');
+  return new Function('get', 'esc', 'str', 'yes', `${constants}return function(s,t,d=0){let o='';${code}return o;}`)(lookup, escape, stringify, truth);
 }

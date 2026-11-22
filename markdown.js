@@ -12,7 +12,9 @@ function close(s, start, token) {
   return -1;
 }
 export function inline(s, link) {
+  if (!/[\\`*\[]/.test(s)) return escape(s);
   let out = '', i = 0;
+  const special = /[\\`*\[]/g;
   while (i < s.length) {
     const c = s[i];
     if (c === '\\' && escapes.has(s[i + 1])) { out += escape(s[i + 1]); i += 2; }
@@ -38,8 +40,9 @@ export function inline(s, link) {
       } else { out += '['; i++; }
     } else {
       // Bulk-copy ordinary text instead of invoking a regexp per character.
-      let end = i + 1;
-      while (end < s.length && !'\\`*['.includes(s[end])) end++;
+      special.lastIndex = i + 1;
+      const next = special.exec(s);
+      const end = next ? next.index : s.length;
       out += escape(s.slice(i, end)); i = end;
     }
   }
