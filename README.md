@@ -19,7 +19,26 @@ Input is `cases.json`, an array of `{id,input}`. Output is `answers.json`, an ar
 
 Templates are validated before compilation. Generated JavaScript consists only of fixed instructions and JSON-quoted data; template text is never executable source. Loop scopes, own-property lookup, standalone tags and include depth preserve the reference semantics. Markdown renders directly, without an intermediate block-token tree, and copies ordinary inline text in runs. All slugs, links, tags and report lines are computed from the current input, not stored answers.
 
-MIT licensed. The kit's reference was read as a behavioral specification; no reference implementation is shipped or imported by the entry.
+## Verification and timing
+
+```sh
+npm test
+# Optional oracle tests; MAKEFUN_KIT points to the separately downloaded official kit:
+MAKEFUN_KIT=/path/to/kit TEST_SITES=200 node test.mjs
+MAKEFUN_KIT=/path/to/kit node test-fuzz.mjs
+MAKEFUN_KIT=/path/to/kit node benchmark.mjs
+# Official practice gate, run from the kit:
+node cli/makefun.mjs grade-local --kit . --bot /path/to/this/repo --driver docker
+node cli/makefun.mjs check --kit . --repo /path/to/this/repo
+```
+
+The entry passed the official Docker practice gate (3/3 cases, deterministic double execution, byte-identical L1 regrade), 200 independently seeded generated sites, and 50,000 deterministic component fuzz inputs. Headless Chromium also matched the reference's screenshot bytes and DOM metrics on 18 combinations of site, page and mobile/desktop viewport; no page JavaScript errors occurred.
+
+A local one-CPU, 1 GiB, network-disabled Docker probe used one warm-up and nine measured rounds per entry, alternating order, with a do-nothing control. Median cgroup CPU: Wren 869,440 microseconds, house 1,777,204, control 43,899; control-net median speedup 2.10x. This is practice evidence, not a claim about the unseen final instance, the official confidence test or prize eligibility. `benchmark.mjs` provides a simpler cold-process measurement with Node's resource usage, not a reproduction of that Docker probe.
+
+Each case has its own bounded escaping cache. There is no cross-case output cache. The driver disables speculative optimizing compilation (`--no-opt`) to reduce cold-batch CPU, while retaining baseline JIT; this was measured against the default and verified through the official local grader.
+
+MIT licensed. The kit's reference was read as a behavioral specification; no reference implementation is shipped or imported by the entry. Oracle imports occur only in optional test tools.
 
 ---
 
